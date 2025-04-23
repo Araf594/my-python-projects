@@ -1,0 +1,705 @@
+# Fantasy Premier League Mini-Manager (Offline CLI Version)
+# Note: Maximum 3 players per club in manager's team does not apply to this program. Maybe in future will be added.
+# Note: Transfers does not apply to this program yet so, Managers get to pick 1 squad for entire season.
+
+import random
+import logging
+
+# Configure logging once
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(levelname)s] %(message)s'
+)
+
+
+class Player:
+    """Players in the game."""
+
+    def __init__(self, name, position, club, price):
+        self.__name = name
+        self.__position = position.upper()  # 4 positions in the game: GK, DEF, MID, FWD.
+        self.__club = club  # Player's Club
+        self.__price = price
+        self.__total_points = 0  # Total points of a Player in the game.
+
+    def __str__(self):
+        """Readable player info"""
+        return f'{self.__name} - Club: {self.__club} Pos: {self.__position} Price: £{self.__price:.1f}M Total Pts: {self.__total_points}'
+
+    @property
+    def name(self):
+        """Getter for the Player name"""
+        return self.__name
+
+    @property
+    def position(self):
+        """Getter for position of the Player"""
+        return self.__position
+
+    @property
+    def club(self):
+        """Getter for club of the Player"""
+        return self.__club
+
+    @property
+    def price(self):
+        """Getter for price of the player"""
+        return self.__price
+
+    @property
+    def total_points(self):
+        """Getter for total points of the player"""
+        return self.__total_points
+
+    @staticmethod
+    def password_check(password):
+        """Checks the password"""
+        if password.lower() == "authorized_pass321":
+            return True
+        else:
+            print("Incorrect password! Player's data can only be changed by authorized person.")
+            return False
+
+    @staticmethod
+    def check_alpha(value):
+        if value.replace(" ", "").isalpha():
+            return True
+        else:
+            print('Invalid entry! Data should only contain alphabets and spaces!')
+            return False
+
+    def set_name(self, new_name, password):
+        """New name can only be set by authorized individuals."""
+
+        errors = []  # Shows all issues at once.
+
+        if not self.check_alpha(new_name):
+            errors.append('Invalid entry! Data should only contain alphabets!')
+
+        if new_name.lower() == self.__name.lower():
+            errors.append(f'The existing player name is already {self.name}')
+
+        if errors:
+            for error in errors:
+                print(f'\n Errors: {error}')
+            return
+
+        if self.password_check(password):
+            old_name = self.__name
+            self.__name = new_name
+            print(f'{old_name} has been changed to {new_name}')
+            return
+
+    def set_position(self, new_pos, password):
+        """New position can only be set by authorized individuals"""
+
+        errors = []
+
+        if not self.check_alpha(new_pos):
+            errors.append('Invalid entry! Data should only contain alphabets!')
+
+        if self.position.lower() == new_pos.lower():
+            errors.append(f'New position {new_pos} same as existing position {self.position}')
+
+        if errors:
+            for error in errors:
+                print(f' Errors: {error}')
+            return
+
+        if self.password_check(password):
+            self.__position = new_pos
+            print(f"{self.name}'s new position: {new_pos}")
+            return
+
+    def set_club(self, new_club, password):
+        """New team for the player can only be set by authorized individuals"""
+
+        errors = []
+
+        if not self.check_alpha(new_club):
+            errors.append('Invalid entry! Data should only contain alphabets!')
+
+        if self.__club.lower() == new_club.lower():
+            errors.append(f'{self.name} already plays for {self.club}')
+
+        if errors:
+            for error in errors:
+                print(f' Errors: {error}')
+            return
+
+        if self.password_check(password):
+            self.__club = new_club
+            print(f"{self.name}'s new club is {new_club}")
+            return
+
+    def set_price(self, new_price, password):
+        """New price for the player can only be set by authorized individuals"""
+
+        errors = []
+
+        if new_price < 0:
+            errors.append('Price can never be negative!')
+
+        if self.__price == new_price:
+            errors.append(f"{self.__name}'s price is already £{self.__price:.1f}M")
+
+        if not isinstance(new_price, (int, float)):
+            errors.append('Price should either be integer or in decimal! Eg. 13 or 13.5')
+
+        if errors:
+            for error in errors:
+                print(f' Errors: {error}')
+            return
+
+        if self.password_check(password):
+            self.__price = new_price
+            print(f"{self.__name}'s new FPL price is £{new_price:1f}M.")
+
+    def set_total_points(self, new_points, password):
+        """New points tally for the player can only be set by authorized individuals"""  # Points can be negative.
+
+        errors = []
+
+        if self.__total_points == new_points:
+            errors.append(f"The points tally for {self.__name} is already {self.__total_points}pts in the game.")
+
+        if not isinstance(new_points, int):
+            errors.append('Invalid entry! FPL points should always be integers!')
+
+        if errors:
+            for error in errors:
+                print(f'Errors: {error}')
+            return
+
+        if self.password_check(password):
+            self.__total_points = new_points
+            print(f"{self.__name}'s total FPL points has been updated to {new_points}pts.")
+
+    def game_week_pts_simulator(self, goals=0, assists=0, clean_sheet=False, yellow_card=False, red_card=False, own_goals=0, minutes_played=60, bonus=0):
+        """Simulates points a player gets after a match, based on their performance. (goals, assists, etc.)."""
+
+        game_week_points = 0
+
+        if self.position == 'FWD':
+            game_week_points += goals * 4  # 4 points per goal for forwards.
+            game_week_points += assists * 3  # 3 points per assist for forwards.
+
+        elif self.position == 'MID':
+            game_week_points += goals * 5  # 5 points per goal for midfielders
+            game_week_points += assists * 3  # 3 points per assist for midfielders
+            if clean_sheet:
+                game_week_points += 1  # 1 points for a clean sheet for midfielders
+
+        elif self.position == 'DEF':
+            game_week_points += goals * 6  # 6 points per goal for defenders
+            game_week_points += assists * 3  # 3 points per assist for defenders
+            if clean_sheet:
+                game_week_points += 4  # 4 points for a clean sheet for defenders
+
+        elif self.position == 'GK':
+            game_week_points += goals * 10  # 10 points per goal for goalkeepers
+            game_week_points += assists * 3  # 3 points per goal for goalkeepers
+            if clean_sheet:
+                game_week_points += 4  # 4 points for a clean sheet for goalkeepers
+
+        game_week_points += bonus
+        game_week_points -= own_goals * 2  # Deduct 2 points if player scores an own goal.
+
+        if yellow_card:
+            game_week_points -= 1  # Deduct 1 point if player gets a yellow card
+        if red_card:
+            game_week_points -= 2  # Deduct 2 points if player gets a red card
+        if minutes_played >= 60:
+            game_week_points += 2  # 2 points for 60+ minutes played or else 1 point
+        else:
+            game_week_points += 1
+
+        print(f'{self.name} scored {game_week_points}pts in this game week')
+
+        self.__total_points += game_week_points
+
+        return game_week_points
+
+    def simulate_performance(self):
+        goals = random.choices([0, 1, 2, 3], weights=[60, 20, 15, 5])[0]
+        assists = random.choices([0, 1, 2, 3], weights=[60, 20, 15, 5])[0]
+        clean_sheet = random.choices([True, False], weights=[40, 60])[0]
+        yellow_card = random.choices([False, True], weights=[80, 20])[0]
+        red_card = random.choices([False, True], weights=[95, 5])[0]
+        own_goals = random.randint(0, 1) if random.random() < 0.05 else 0  # own_goals = random.choices([0, 1], weights=[95,5])[0] also works but the one I have right now rarer.
+        minutes_played = random.choices([random.randint(60, 90), random.randint(30, 59)], weights=[80, 20])[0]
+        bonus = random.choices([0, 1, 2, 3], weights=[60, 20, 15, 5])[0]
+
+        self.game_week_pts_simulator(
+            goals=goals,
+            assists=assists,
+            clean_sheet=clean_sheet,
+            yellow_card=yellow_card,
+            red_card=red_card,
+            own_goals=own_goals,
+            minutes_played=minutes_played,
+            bonus=bonus
+        )
+
+
+class Team:
+    """Manager's team."""
+
+    def __init__(self, manager_name, team_name):
+        self.manager = manager_name
+        self.team_name = team_name
+        self.__team = {'GK': [], 'DEF': [], 'MID': [], 'FWD': []}  # Dictionary of Players (objects) chosen by the manager but initially team is empty. E.g: {'GK': ['Alisson','Johny'], 'DEF': ['Alex','Morgan','Torres','John','Rio'], 'MID': ['Son','Salah','Kevin','Joe','Alexis'], 'FWD': ['Holland','Jesus','York']}
+        self.__budget = 100  # Initially every manager will get £100M to build their team.
+        self.__goalkeepers = 0  # Initially 0 goalkeepers in the team
+        self.__defenders = 0  # Initially 0 defenders in the team
+        self.__midfielders = 0  # Initially 0 midfielders in the team
+        self.__forwards = 0  # Initially 0 forwards in the team
+        self.__total_players = 0  # Total players in the team should reach 15 players to complete the squad.
+        self.__points_total = 0  # Total points by a manager which increases each game week as their team score points.
+    __max_players = 15  # 15 because 11 starting players and 4 players in the bench just like the official game.
+    __max_forwards = 3  # Max 3 Forwards (FWD) allowed in a team
+    __max_midfielders = 5  # Max 5 Midfielders (MID) allowed in a team
+    __max_defenders = 5  # Max 5 Defenders (DEF) allowed in a team
+    __max_goalkeepers = 2  # Max 2 Goalkeepers (GK) allowed in a team
+
+    def __str__(self):
+        """Readable info about manager's team"""
+        return f'Manager: {self.manager} Team: {self.team_name} Remaining Budget: £{self.__budget:.1f}M Players: {self.__total_players}/15'
+
+    @property
+    def team(self):
+        """Getter for the current team of the manager"""
+        return self.__team
+
+    @property
+    def remaining_budget(self):
+        """Getter for the remaining budget"""
+        return f' Remaining Budget: {self.__budget:1f}'
+
+    @property
+    def goalkeepers(self):
+        """Getter for the number of goalkeepers in the current team of the manager"""
+        return f' Number of Goalkeepers (GK) currently in your team: {self.__goalkeepers}'
+
+    @property
+    def defenders(self):
+        """Getter for the number of defenders in the current team of the manager"""
+        return f' Number of Defenders (DEF) currently in your team: {self.__defenders}'
+
+    @property
+    def midfielders(self):
+        """Getter for the number of midfielders in the current team of the manager"""
+        return f' Number of Midfielders (MID) currently in your team: {self.__midfielders}'
+
+    @property
+    def forwards(self):
+        """Getter for the number of forwards in the current team of the manager"""
+        return f' Number of Forwards (FWD) currently in your team: {self.__forwards}'
+
+    @property
+    def total_player(self):
+        """Getter for the total number of players in the current team of the manager"""
+        return f' Total players in the current squad: {self.__total_players}'
+
+    @classmethod
+    def max_players(cls):
+        """Getter for __max_players"""
+        return f' Your team should consist of {cls.__max_players} number of players'
+
+    @classmethod
+    def max_forwards(cls):
+        """Getter for __max_forwards"""
+        return f' Your team should consist of {cls.__max_forwards} Forwards (FWD)'
+
+    @classmethod
+    def max_midfielders(cls):
+        """Getter for __max_midfielders"""
+        return f' Your team should consist of {cls.__max_midfielders} Midfielders (MID)'
+
+    @classmethod
+    def max_defenders(cls):
+        """Getter for __max_defenders"""
+        return f' Your team should consist of {cls.__max_defenders} Defenders (DEF)'
+
+    @classmethod
+    def max_goalkeepers(cls):
+        """Getter for __max_goalkeepers"""
+        return f' Your team should consist of {cls.__max_goalkeepers} Goalkeepers (GK)'
+
+    def add_player(self, player_object):
+        """Adds a player to the manager's team."""
+
+        if not isinstance(player_object, Player):
+            raise ValueError("Sorry, you can only add valid players. Please check the player name.")
+
+        remaining_budget = self.__budget - player_object.price
+
+        if remaining_budget < 0:
+            print('\nCan not add the player due to negative budget!')
+            print(f'Remaining Budget (If we add the player): {remaining_budget:.1f}')
+            print('Tip: Re-adjust your team to make room for this player or look for other options in the market!')
+            return
+
+        if self.__total_players == 15:
+            print('You can not add more than 15 players in your team!')
+            return
+
+        if self.__forwards == 3 and player_object.position == 'FWD':
+            print('You can not add more than 3 Forwards (FWD) in your team!')
+            return
+
+        if self.__midfielders == 5 and player_object.position == 'MID':
+            print('You can not add more than 5 Midfielders (MID) in your team!')
+            return
+
+        if self.__defenders == 5 and player_object.position == 'DEF':
+            print('You can not add more than 5 Defenders (DEF) in your team!')
+            return
+
+        if self.__goalkeepers == 2 and player_object.position == 'GK':
+            print('You can not add more than 2 Goalkeepers (GK) in your team!')
+            return
+
+        if player_object in self.__team[player_object.position]:
+            print(f'{player_object.name} is already in your team!')
+            return
+
+        self.__team[player_object.position].append(player_object)
+        self.__total_players += 1
+        print('Player added to the team!')
+        print(f'Player: {player_object.name} POS: {player_object.position} Club: {player_object.club} Price: £{player_object.price:.1f}M')
+        self.__budget -= player_object.price
+        print(f'Remaining budget: £{self.__budget:.1f}M')
+
+        if player_object.position == "FWD":
+            self.__forwards += 1
+        elif player_object.position == "MID":
+            self.__midfielders += 1
+        elif player_object.position == "DEF":
+            self.__defenders += 1
+        elif player_object.position == "GK":
+            self.__goalkeepers += 1
+
+        return
+
+    def remove_player(self, player_object):
+        """Removes a player from the manager's team"""
+
+        if not isinstance(player_object, Player):
+            raise ValueError("Sorry, you can only remove valid players. Please check the player name..")
+
+        if player_object in self.__team[player_object.position]:
+            self.__team[player_object.position].remove(player_object)
+            self.__total_players -= 1
+            print(f'{player_object.name} removed from your team!')
+
+            if player_object.position == "FWD":
+                self.__forwards -= 1
+            elif player_object.position == "MID":
+                self.__midfielders -= 1
+            elif player_object.position == "DEF":
+                self.__defenders -= 1
+            elif player_object.position == "GK":
+                self.__goalkeepers -= 1
+
+            return
+
+        else:
+            print(f'Impossible as {player_object.name} is not in your team anyway.')
+            return
+
+    def calculate_total_points(self):
+        """Adds up the total points of all players in the manager's team."""
+        # Note: This is assuming no transfers in this FPL game yet, meaning managers have a fixed squad for now.
+
+        total_points = 0
+
+        if self.__total_players != 15:
+            logging.warning('Total points unavailable – Team is incomplete.')
+
+            return
+
+        logging.info(f"Points Breakdown for Team: {self.team_name}")  
+        logging.info("-" * 40)
+
+        for position, players_list in self.__team.items():
+            for player in players_list:
+                logging.info(f"{player.name} ({position}) - {player.total_points} points")
+                total_points += player.total_points
+
+        logging.info("-" * 40)
+        logging.info(f"Total Team Points: {total_points} points")
+
+        self.__points_total = total_points
+
+        return total_points
+
+    @property
+    def total_pts(self):
+        """Returns total points of the team"""
+        return self.__points_total  # Again if there is nothing major we'll move onto the last part of Team class before moving onto league class! loving the revision so far before our test stage.
+
+    def view_team(self):
+        """Displays team info in a readable format (manager name, budget, players and their info.)"""
+
+        print(f'\nManager: {self.manager}')
+        print(f'\nTeam: {self.team_name}')
+        print(f'\nRemaining Budget: £{self.__budget:.1f}M')
+        goalkeepers = [gk for gk in self.__team.get('GK', [])]
+        defenders = [d for d in self.__team.get('DEF', [])]
+        mid = [mid for mid in self.__team.get('MID', [])]
+        forwards = [fwd for fwd in self.__team.get('FWD', [])]
+        print('\n------------GOALKEEPERS------------')
+        if goalkeepers:
+            for index, gk in enumerate(goalkeepers, start=1):
+                print(f'{index}. {gk.name} (£{gk.price}M Pts: {gk.total_points}')
+        else:
+            print('Currently you do not have any goalkeepers in your team')
+
+        print('\n------------DEFENDERS------------')
+        if defenders:
+            for index, defender in enumerate(defenders, start=1):
+                print(f'{index}. {defender.name} (£{defender.price}M Pts: {defender.total_points}')
+        else:
+            print('Currently you do not have any defenders in your team')
+
+        print('\n------------MIDFIELDERS------------')
+        if mid:
+            for index, midfielders in enumerate(mid, start=1):
+                print(f'{index}. {midfielders.name} (£{midfielders.price}M Pts: {midfielders.total_points}')
+        else:
+            print('Currently you do not have any midfielders in your team')
+
+        print('\n------------FORWARDS------------')
+        if forwards:
+            for index, fwd in enumerate(forwards, start=1):
+                print(f'{index}. {fwd.name} (£{fwd.price}M Pts: {fwd.total_points}')
+        else:
+            print('Currently you do not have any forwards in your team')
+
+        return
+
+class League:
+    """Represents the Fantasy League."""
+
+    league = []  # E.g: [{'Manager': 'Alice','Team':'XI stars', 'Points': 72}, {'Manager': 'John', 'Team':'World XI', 'Points': 86}]
+
+    def add_team(self, team_object):
+        """Accepts a team object as input and adds it the league"""
+
+        if not isinstance(team_object, Team):
+            raise ValueError("Sorry, you can only add valid teams. Please check the team name or Create a team first.")  
+
+        if any(dictionary["Team"] == team_object.team_name for dictionary in self.league):  # In this game, each team name must be unique.
+            print("This team is already in the league. A team name must be unique")
+            return
+
+        if team_object.total_player != 15:
+            print("Complete the team to enter the league")
+            return
+
+        dictionary = {'Manager': team_object.manager, 'Team': team_object.team_name, 'Points': team_object.total_pts}
+        self.league.append(dictionary)
+        print("Team added to the league")
+    
+    def update_leaderboard(self, team):
+        """Updates the leaderboard as points of teams increases"""
+        
+        if not isinstance(team, Team):
+            raise ValueError("Sorry, you can only update valid teams that are existing in the League.")
+
+        for teams in self.league:
+            if teams['Team'] == team.team_name:
+                teams['Points'] = team.calculate_total_points()
+                return
+        print(f' Update not possible! {team.team_name} not found in League! ')
+
+    def display_leaderboard(self):
+        """Displays rank of all teams based on how well they’re performing."""
+
+        sorted_leaderboard = sorted(self.league, key=lambda item: item['Points'], reverse=True)
+
+        print('\n------------🏆 LEADERBOARD 🏆------------')
+        if self.league:
+            for index, dictionary in enumerate(sorted_leaderboard, start=1):
+                print(f'\n{index}. {dictionary["Manager"]} - Team: {dictionary["Team"]} - Points: {dictionary["Points"]}')
+        else:
+            print('\n There are no teams in the League at the moment!')
+
+    def __str__(self):
+        return f"League has {len(self.league)} team(s) registered."
+
+class FPLGame:
+    """main control hub."""
+
+    def __init__(self):
+        self.teams = {}  # Key : Team name, Value: team_object, Each team name is unique in this game as said before.
+
+    global_league = League()
+
+    player_pool = {
+        "GK": [
+            Player("Alisson", "GK", "Liverpool", 5.5),
+            Player("Ederson", "GK", "Man City", 5.5),
+            Player("Ramsdale", "GK", "Arsenal", 5.0),
+            Player("Onana", "GK", "Man United", 5.0),
+            Player("Sánchez", "GK", "Chelsea", 4.5)
+        ],
+        "DEF": [
+            Player("Trent Alexander-Arnold", "DEF", "Liverpool", 7.5),
+            Player("Ben White", "DEF", "Arsenal", 5.5),
+            Player("Joško Gvardiol", "DEF", "Man City", 5.0),
+            Player("Raphaël Varane", "DEF", "Man United", 5.0),
+            Player("Reece James", "DEF", "Chelsea", 5.5),
+            Player("Pervis Estupiñán", "DEF", "Brighton", 5.0),
+            Player("Matty Cash", "DEF", "Aston Villa", 4.5),
+            Player("Kieran Trippier", "DEF", "Newcastle", 6.5),
+            Player("Pedro Porto", "DEF", "Spurs", 5.0),
+            Player("Aaron Hickey", "DEF", "Brentford", 4.5)
+        ],
+        "MID": [
+            Player("Kevin De Bruyne", "MID", "Man City", 11.5),
+            Player("Martin Ødegaard", "MID", "Arsenal", 8.5),
+            Player("Bruno Fernandes", "MID", "Man United", 9.0),
+            Player("Mohamed Salah", "MID", "Liverpool", 12.5),
+            Player("Cole Palmer", "MID", "Chelsea", 5.5),
+            Player("Son Heung-min", "MID", "Spurs", 9.5),
+            Player("James Maddison", "MID", "Spurs", 8.0),
+            Player("Kaoru Mitoma", "MID", "Brighton", 6.5),
+            Player("Jacob Ramsey", "MID", "Aston Villa", 5.5),
+            Player("Dwight McNeil", "MID", "Everton", 5.0),
+            Player("Declan Rice", "MID", "Arsenal", 5.5),
+            Player("Enzo Fernández", "MID", "Chelsea", 5.5),
+            Player("Joelinton", "MID", "Newcastle", 6.0),
+            Player("Pascal Groß", "MID", "Brighton", 6.0),
+            Player("Lucas Paquetá", "MID", "West Ham", 6.0)
+        ],
+        "FWD": [
+            Player("Erling Haaland", "FWD", "Man City", 14.0),
+            Player("Gabriel Jesus", "FWD", "Arsenal", 8.0),
+            Player("Darwin Núñez", "FWD", "Liverpool", 7.5),
+            Player("Rasmus Højlund", "FWD", "Man United", 7.0),
+            Player("Nicolas Jackson", "FWD", "Chelsea", 6.5),
+            Player("Ollie Watkins", "FWD", "Aston Villa", 8.0),
+            Player("Callum Wilson", "FWD", "Newcastle", 7.0),
+            Player("Dominic Calvert-Lewin", "FWD", "Everton", 6.0),
+            Player("Evan Ferguson", "FWD", "Brighton", 6.5),
+            Player("Jarrod Bowen", "FWD", "West Ham", 7.5)
+        ]
+    }
+
+
+    def run(self):
+        """ Runs the system and this is where the fun begins ♡"""
+
+        while True:
+            print('\n --------------✨ Options ✨--------------')
+            print(' -' * 43)
+            print('\n 1.Create Team')
+            print('2.Show Player Pool')
+            print('3.Add Players')
+            print('4.Remove Players')
+            print('5.Simulate Match')
+            print('6.Show team details')
+            print('7.Add team to Global league')
+            print('8.Show Leaderboard')
+            print('9.Exit')
+            print(' -' * 43)
+
+            while True:
+                try:
+                    choice = int(input('Choose an option (1-9): '))
+                    break
+                except ValueError:
+                    print('Invalid Option! Choose a number between 1-9...')
+
+            if choice == 1:
+                while True:
+                    manager = input('\n Enter Manager Name: ').strip().upper()
+                    if not manager.isalpha():
+                        print('Invalid Manager Name! A Name should only consist of alphabets!')
+                    else:
+                        break
+                while True:
+                    team_name = input('\n Enter Team Name: ').strip().upper()
+                    if team_name in self.teams:
+                        print("This team name is already taken. Please choose a different one.")
+                    else:
+                        team_obj = Team(manager, team_name)
+                        self.teams[team_obj.team_name] = team_obj
+                        break
+
+            elif choice == 2:
+                for position, players_list in self.player_pool.items():
+                    print(f'\n------------{position}------------')
+                    for player in players_list:
+                        print(player)
+            elif choice == 3:
+                found = False
+                team = input('Team Name: ').strip().upper()
+                if team not in self.teams:
+                    print(f'\n "{team}" not found! Create a team first to add players!')
+                    continue
+                else:
+                    player_name = input('Please enter the name of the Player you want to add: ').strip()
+                    for player_list in self.player_pool.values():
+                        for player_object in player_list:
+                            if player_object.name.lower() == player_name.lower():
+                                self.teams[team].add_player(player_object)
+                                found = True
+                                break
+                    if not found:
+                        print(f'{player_name} not found in FPL Player Pool.')
+            elif choice == 4:
+                found = False
+                team = input('Team Name: ').strip().upper()
+                if team not in self.teams:
+                    print(f'\n "{team}" not found! Create a team first to add players!')
+                    continue
+                else:
+                    player_name = input('Please enter the name of the Player you want to remove: ').strip()
+                    for player_list in self.player_pool.values():
+                        for player_object in player_list:
+                            if player_object.name.lower() == player_name.lower():
+                                self.teams[team].remove_player(player_object)
+                                found = True
+                                break
+                    if not found:
+                        print(f'{player_name} not found in FPL Player Pool.')
+
+            elif choice == 5:
+                if not self.teams:
+                    print("No teams have been created yet.")
+                    continue
+
+                print("\n🎮 Simulating this week's matches...\n")
+                for team in self.teams.values():
+                    for position_players in team.team.values():
+                        for player in position_players:
+                            player.simulate_performance()  # Uses your stat-based simulator
+                    total = team.calculate_total_points()  # this is assuming a complete team of 15 players.
+                    self.global_league.update_leaderboard(team)
+                    print(f"{team.manager}'s team ({team.team_name}) now has {total} points.")
+
+            elif choice == 6:
+                team = input('Team Name: ').strip().upper()
+                if team not in self.teams:
+                    print(f'\n "{team}" not found! Create a team first to View Team!')
+                else:
+                    self.teams[team].view_team()
+
+            elif choice == 7:
+                team = input('Team Name: ').strip().upper()
+                if team not in self.teams:
+                    print(f'\n "{team}" not found! Create a team first to be eligible for the league.!')
+                elif self.teams[team].total_player != 15:
+                    print("⚠️ Team must have exactly 15 players to join the global league.")
+                else:
+                    self.global_league.add_team(self.teams[team])
+
+            elif choice == 8:
+                self.global_league.display_leaderboard()
+
+            elif choice == 9:
+                print('👋 Bye! Hope to see you soon again!')
+                break
