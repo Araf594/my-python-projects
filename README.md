@@ -34,3 +34,15 @@ Performs basic arithmetic operations (+, −, ×, ÷) with input validation.
 
 ---
 
+🔗 About Me
+🇧🇩 From Bangladesh, currently preparing to study Bachelor in Computer Science at Asia Pacific University (APU), Malaysia
+
+🧠 Strong foundation in Python and logic building
+
+🎓 5 A*, 2A in O/A Levels | IELTS 6.5
+
+🖥️ Also familiar with Microsoft Word, Excel & file handling
+
+📫 Reach out if you want custom Python scripts or need help with task automation!
+
+
